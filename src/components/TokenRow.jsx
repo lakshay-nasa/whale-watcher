@@ -59,7 +59,7 @@ const TokenRow = ({ token, fetchNews, newsData, newsLoading }) => {
       {newsData && (
         <div className="news-dropdown">
           <div className="news-header">
-            Latest Headlines (Zyte AI):
+            Latest Headlines:
           </div>
           
           {newsData.length === 0 ? (
