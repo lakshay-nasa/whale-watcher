@@ -1,6 +1,6 @@
 # 🐳 Whale Watcher
 
-A hybrid Web3 dashboard that tracks high-net-worth wallet activity and contextualises it with real-time news, using Moralis API.
+**A hybrid Web3 dashboard that tracks high-net-worth wallet activity and contextualizes it with real-time news, using the Moralis API.**
 
 [Live Demo](https://whale-watcher-2yt1.onrender.com/])
 
@@ -27,8 +27,14 @@ cd whale-watcher
 2. Frontend (React)
 ```
 npm install
-# Create a .env file in root and add your Key: VITE_MORALIS_KEY=your_key
+# Create a .env file in root and add your Key: MORALIS_API_KEY=your_key
 npm run dev
+```
+
+3. Backend (Python)
+```
+pip install -r requirements.txt 
+python ./backend/server.py
 ```
 
 ***Built by [Lakshay Nasa](https://www.linkedin.com/in/lakshaynasa/).***

@@ -1,11 +1,9 @@
 import React from 'react';
-import { ArrowRight, Newspaper, Loader2, ExternalLink } from 'lucide-react';
+import { Newspaper, Loader2, ExternalLink } from 'lucide-react';
 
 const TokenRow = ({ token, fetchNews, newsData, newsLoading }) => {
   
-  // Helper to format balances nicely
-  
-  // Function 1: Compact version for the visual list (e.g. "1.5M")
+  // 1. Format Balance (e.g. 1.5M)
   const formatCompact = (balance, decimals) => {
     const num = balance / (10 ** decimals);
     return new Intl.NumberFormat('en-US', {
@@ -15,10 +13,21 @@ const TokenRow = ({ token, fetchNews, newsData, newsLoading }) => {
     }).format(num);
   };
 
-  // Function 2: Full version for the hover tooltip (e.g. "1,500,000.00")
-  const formatFull = (balance, decimals) => {
-    const num = balance / (10 ** decimals);
-    return num.toLocaleString(undefined, { maximumFractionDigits: 4 });
+  // 2. Format Currency (e.g. $1,200.00)
+  const formatMoney = (val) => {
+    if (!val || val === 0) return "$0.00";
+    
+    // If value is very small (less than 1 cent), show more decimals
+    if (val < 0.01) {
+       return "$" + val.toFixed(10);
+    }
+
+    // Otherwise standard currency formatting
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      maximumFractionDigits: 2
+    }).format(val);
   };
 
   const isLoading = newsLoading === token.symbol;
@@ -31,15 +40,20 @@ const TokenRow = ({ token, fetchNews, newsData, newsLoading }) => {
           <div className="token-name">{token.name || "Unknown"}</div>
         </div>
         
-        <div className="token-actions">
-          
-          <div 
-            className="token-balance" 
-            title={formatFull(token.balance, token.decimals)} /* Shows full number on hover */
-          >
-            {formatCompact(token.balance, token.decimals)}    {/* Shows short number on screen */}
+        <div className="token-financials">
+           <div className="token-value">
+            {formatMoney(token.usd_value)}
           </div>
+          <div className="token-details">
+            <span className="detail-price">@{formatMoney(token.usd_price)}</span>
+            <span className="detail-dot">•</span>
+            <span className="detail-balance">
+              {formatCompact(token.balance, token.decimals)} {token.symbol}
+            </span>
+          </div>
+        </div>
 
+        <div className="token-actions">
           <button 
             className="news-btn"
             onClick={() => fetchNews(token.name, token.symbol)}
@@ -55,11 +69,10 @@ const TokenRow = ({ token, fetchNews, newsData, newsLoading }) => {
         </div>
       </div>
 
-      {/* News Dropdown code... */}
       {newsData && (
         <div className="news-dropdown">
           <div className="news-header">
-            Latest Headlines:
+            Latest Headlines for {token.symbol}:
           </div>
           
           {newsData.length === 0 ? (

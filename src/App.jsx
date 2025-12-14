@@ -10,16 +10,16 @@ const App = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [searched, setSearched] = useState(false);
+  const [netWorth, setNetWorth] = useState(0); // Store total net worth
 
   const [news, setNews] = useState({});
   const [newsLoading, setNewsLoading] = useState(null); 
 
   const MORALIS_API_KEY = import.meta.env.VITE_MORALIS_KEY;
-  // const PYTHON_BACKEND_URL = "http://localhost:5000/news";
   const PYTHON_BACKEND_URL = import.meta.env.VITE_BACKEND_URL 
-  ? `${import.meta.env.VITE_BACKEND_URL}/news`  // Note: Render URL usually doesn't end in /news
+  ? `${import.meta.env.VITE_BACKEND_URL}/news`
   : "http://localhost:5000/news";
-  
+   
   const fetchTokenBalances = async () => {
     // 1. Validation
     if (!address || !address.startsWith("0x")) {
@@ -37,9 +37,10 @@ const App = () => {
     setSearched(false);
     setNews({});
     setTokens([]);
+    setNetWorth(0);
 
-    // 2. Call Moralis
-    const endpoint = `https://deep-index.moralis.io/api/v2.2/${address}/erc20`;
+    // 2. Call Morali
+    const endpoint = `https://deep-index.moralis.io/api/v2.2/wallets/${address}/tokens`;
 
     try {
       const resp = await axios.get(endpoint, {
@@ -47,13 +48,25 @@ const App = () => {
           accept: "application/json",
           "X-API-Key": MORALIS_API_KEY,
         },
-        params: { chain: "0x1" },
+        params: { 
+          chain: "0x1",
+          exclude_spam: true,
+          exclude_unverified_contracts: true,
+          min_pair_side_liquidity_usd: 10000
+        },
       });
+      const rawTokens = resp.data.result || [];
 
-      // 3. Filter Data
-      const clean = Array.isArray(resp.data)
-        ? resp.data.filter((t) => t.balance > 0 && !t.possible_spam)
+      let clean = Array.isArray(rawTokens)
+        ? rawTokens.filter((t) => t.balance > 0 && !t.possible_spam)
         : [];
+
+      // 3. Sort by USD Value (Ranking) - Descending
+      clean.sort((a, b) => (b.usd_value || 0) - (a.usd_value || 0));
+
+      // 4. Calculate Total Net Worth
+      const totalValue = clean.reduce((acc, token) => acc + (token.usd_value || 0), 0);
+      setNetWorth(totalValue);
 
       setTokens(clean);
       setSearched(true);
@@ -75,7 +88,6 @@ const App = () => {
     setNewsLoading(tokenSymbol);
 
     try {
-      // 4. Call Python Backend
       const resp = await axios.get(PYTHON_BACKEND_URL, { 
         params: { token: tokenName } 
       });
@@ -89,10 +101,18 @@ const App = () => {
 
     } catch (err) {
       console.error("News Error:", err);
-      alert(`Could not fetch news. Is the Python backend running at ${PYTHON_BACKEND_URL}?`);
     } finally {
       setNewsLoading(null);
     }
+  };
+
+  // Helper for Net Worth Formatting
+  const formatCurrency = (val) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      maximumFractionDigits: 2
+    }).format(val);
   };
 
   // --- RENDER ---
@@ -139,6 +159,13 @@ const App = () => {
         {/* Results Area */}
         {searched && !loading && (
           <div className="results-area">
+             
+            {/* Net Worth Header */}
+            <div className="networth-card">
+              <div className="networth-label">Total Net Worth</div>
+              <div className="networth-amount">{formatCurrency(netWorth)}</div>
+            </div>
+
             <div className="results-header">
               <Coins size={18} />
               <h3>Portfolio Holdings</h3>
